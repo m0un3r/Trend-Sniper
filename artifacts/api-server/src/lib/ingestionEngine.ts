@@ -234,10 +234,20 @@ export async function runIngestion(): Promise<IngestionResult> {
       ? Math.min(100, Math.round((totalViews / Math.max(1, totalPosts)) / 5000 * 10) / 10)
       : Math.min(100, Math.round((totalViews / Math.max(1, totalPosts)) / 10000 * 10) / 10);
 
-    // For e-commerce, carry through affiliate URL and price from the first post
+    // For e-commerce, carry through affiliate URL, price, and rating from the first post
     const firstPost = posts[0];
     const affiliateUrl = isEcom ? (firstPost?.affiliateUrl ?? null) : null;
     const imageUrl = posts.find((p) => p.thumbnailUrl)?.thumbnailUrl ?? null;
+
+    // Average price and rating across all e-commerce posts that have them
+    const pricesWithValues = posts.map((p) => p.price).filter((v): v is number => v != null && v > 0);
+    const ratingsWithValues = posts.map((p) => p.rating).filter((v): v is number => v != null && v > 0);
+    const price = isEcom && pricesWithValues.length > 0
+      ? Math.round((pricesWithValues.reduce((s, v) => s + v, 0) / pricesWithValues.length) * 100) / 100
+      : null;
+    const rating = isEcom && ratingsWithValues.length > 0
+      ? Math.round((ratingsWithValues.reduce((s, v) => s + v, 0) / ratingsWithValues.length) * 10) / 10
+      : null;
 
     const [inserted] = await db
       .insert(productsTable)
@@ -252,6 +262,8 @@ export async function runIngestion(): Promise<IngestionResult> {
         totalViews,
         imageUrl,
         affiliateUrl,
+        price,
+        rating,
         detectedAt: new Date(),
         updatedAt: new Date(),
       })

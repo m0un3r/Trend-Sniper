@@ -1,5 +1,5 @@
 import { Link, useParams } from "wouter";
-import { ArrowLeft, TrendingUp, Eye, FileText, Zap, ExternalLink, Heart, Share2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, Eye, FileText, Zap, ExternalLink, Heart, Share2, Star, ShoppingCart, DollarSign } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { PlatformBadge, platformColor } from "@/components/platform-badge";
@@ -20,6 +20,29 @@ function fmt(n: number) {
   return n.toString();
 }
 
+function StarRatingLarge({ rating }: { rating: number }) {
+  const full = Math.floor(rating);
+  const hasHalf = rating - full >= 0.5;
+  return (
+    <div className="flex items-center gap-1">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star
+          key={i}
+          className="w-4 h-4"
+          style={{
+            fill: i < full ? "#ff9900" : i === full && hasHalf ? "#ff990060" : "transparent",
+            color: i < full || (i === full && hasHalf) ? "#ff9900" : "rgba(255,255,255,0.15)",
+          }}
+        />
+      ))}
+      <span className="text-sm font-black tabular-nums ml-1" style={{ color: "#ff9900" }}>
+        {rating.toFixed(1)}
+      </span>
+      <span className="text-xs text-muted-foreground ml-1">out of 5</span>
+    </div>
+  );
+}
+
 export default function ProductDetail() {
   const params = useParams<{ id: string }>();
   const id = parseInt(params.id ?? "0");
@@ -29,6 +52,7 @@ export default function ProductDetail() {
 
   const pColor = product ? platformColor(product.platform) : "#6366f1";
   const scoreColor = (product?.trendScore ?? 0) >= 80 ? "#10b981" : (product?.trendScore ?? 0) >= 60 ? "#f59e0b" : "#ff0050";
+  const isEcom = product?.platform === "amazon" || product?.platform === "shopify";
 
   if (!isLoading && !product) {
     return (
@@ -76,20 +100,49 @@ export default function ProductDetail() {
                     style={{ color: scoreColor, background: `${scoreColor}18` }}
                   >
                     <TrendingUp className="w-4 h-4" />
-                    {product?.trendScore.toFixed(1)} trend score
+                    {(product?.trendScore ?? 0).toFixed(1)} trend score
                   </span>
+                  {/* Price badge — e-commerce only */}
+                  {isEcom && product?.price != null && (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-black tabular-nums"
+                      style={{ color: pColor, background: `${pColor}18` }}
+                    >
+                      <DollarSign className="w-4 h-4" />
+                      ${product.price.toFixed(2)}
+                    </span>
+                  )}
                 </div>
+
+                {/* Star rating — e-commerce only */}
+                {isEcom && product?.rating != null && (
+                  <StarRatingLarge rating={product.rating} />
+                )}
               </>
             )}
           </div>
-          {product?.affiliateUrl && (
-            <a href={product.affiliateUrl} target="_blank" rel="noopener noreferrer">
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs border-border shrink-0">
+
+          {/* CTA buttons */}
+          <div className="flex flex-col gap-2 shrink-0">
+            {product?.affiliateUrl && (
+              <a href={product.affiliateUrl} target="_blank" rel="noopener noreferrer">
+                <Button
+                  size="sm"
+                  className="gap-1.5 text-xs w-full"
+                  style={{ background: pColor, color: "#fff" }}
+                >
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                  {product.platform === "amazon" ? "Buy on Amazon" : "Buy on Shopify"}
+                </Button>
+              </a>
+            )}
+            {!product?.affiliateUrl && !isLoading && (
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs border-border" disabled>
                 <ExternalLink className="w-3.5 h-3.5" />
                 View Product
               </Button>
-            </a>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -99,9 +152,13 @@ export default function ProductDetail() {
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
         ) : (
           [
-            { label: "Velocity", value: product?.velocity.toFixed(1) ?? "—", icon: Zap, color: pColor },
-            { label: "Engagement", value: `${product?.engagementRate.toFixed(1)}%`, icon: TrendingUp, color: "#10b981" },
-            { label: "Total Posts", value: fmt(product?.totalPosts ?? 0), icon: FileText, color: "#a855f7" },
+            { label: "Velocity", value: (product?.velocity ?? 0).toFixed(1), icon: Zap, color: pColor },
+            isEcom && product?.price != null
+              ? { label: "Price", value: `$${product.price.toFixed(2)}`, icon: DollarSign, color: "#ff9900" }
+              : { label: "Engagement", value: `${(product?.engagementRate ?? 0).toFixed(1)}%`, icon: TrendingUp, color: "#10b981" },
+            isEcom
+              ? { label: "Reviews", value: fmt(product?.totalViews ?? 0), icon: Star, color: "#ff9900" }
+              : { label: "Total Posts", value: fmt(product?.totalPosts ?? 0), icon: FileText, color: "#a855f7" },
             { label: "Total Views", value: fmt(product?.totalViews ?? 0), icon: Eye, color: "#3b82f6" },
           ].map(({ label, value, icon: Icon, color }) => (
             <div
@@ -122,6 +179,52 @@ export default function ProductDetail() {
           ))
         )}
       </div>
+
+      {/* Rating breakdown — e-commerce only */}
+      {!isLoading && isEcom && product?.rating != null && (
+        <div
+          className="rounded-xl border p-6"
+          style={{ background: "hsl(var(--card))", borderColor: "hsl(var(--card-border))" }}
+        >
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Customer Rating</p>
+          <div className="flex items-center gap-8">
+            {/* Big number */}
+            <div className="text-center shrink-0">
+              <p className="text-6xl font-black tabular-nums" style={{ color: "#ff9900" }}>
+                {product.rating.toFixed(1)}
+              </p>
+              <StarRatingLarge rating={product.rating} />
+              <p className="text-xs text-muted-foreground mt-1">
+                {fmt(product.totalViews)} reviews
+              </p>
+            </div>
+            {/* Bar breakdown */}
+            <div className="flex-1 space-y-2">
+              {[5, 4, 3, 2, 1].map((star) => {
+                const r = product.rating ?? 0;
+                const pct = star === Math.round(r)
+                  ? 45 + (r % 1) * 20
+                  : star > Math.round(r)
+                    ? Math.max(2, (star - Math.round(r)) * 8)
+                    : Math.max(2, (star) * 6);
+                return (
+                  <div key={star} className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-4 text-right">{star}</span>
+                    <Star className="w-3 h-3 shrink-0" style={{ fill: "#ff9900", color: "#ff9900" }} />
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, background: "#ff9900" }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground tabular-nums w-8">{Math.round(pct)}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Trend history chart */}
       <div
@@ -170,7 +273,9 @@ export default function ProductDetail() {
         style={{ background: "hsl(var(--card))", borderColor: "hsl(var(--card-border))" }}
       >
         <div className="px-6 py-4 border-b" style={{ borderColor: "hsl(var(--border))" }}>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Related Viral Posts</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+            {isEcom ? "Product Listings" : "Related Viral Posts"}
+          </p>
         </div>
         {isLoading ? (
           <div className="p-5 space-y-3">
@@ -180,12 +285,11 @@ export default function ProductDetail() {
           <p className="text-xs text-muted-foreground p-6">No posts found for this product</p>
         ) : (
           <div>
-            {(product?.recentPosts ?? []).map((post, i) => (
+            {(product?.recentPosts ?? []).map((post) => (
               <div
                 key={post.id}
                 className="px-6 py-4 flex items-start gap-4 border-b last:border-0 hover:bg-white/[0.02] transition-colors"
                 style={{ borderColor: "hsl(var(--border))", borderLeft: `3px solid ${platformColor(post.platform)}` }}
-                data-testid={`related-post-${post.id}`}
               >
                 <PlatformBadge platform={post.platform} />
                 <div className="flex-1 min-w-0">
@@ -194,14 +298,17 @@ export default function ProductDetail() {
                   )}
                   <p className="text-xs text-muted-foreground">
                     <span className="font-bold text-white">{post.creatorUsername}</span>
-                    {" · "}
-                    {fmt(post.creatorFollowers)} followers
+                    {post.creatorFollowers > 0 && (
+                      <>{" · "}{fmt(post.creatorFollowers)} followers</>
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground shrink-0">
                   <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{fmt(post.views)}</span>
                   <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{fmt(post.likes)}</span>
-                  <span className="flex items-center gap-1"><Share2 className="w-3 h-3" />{fmt(post.shares)}</span>
+                  {post.shares > 0 && (
+                    <span className="flex items-center gap-1"><Share2 className="w-3 h-3" />{fmt(post.shares)}</span>
+                  )}
                 </div>
               </div>
             ))}

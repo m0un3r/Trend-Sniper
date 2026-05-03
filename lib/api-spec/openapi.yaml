@@ -339,6 +339,12 @@ components:
         affiliateUrl:
           type: string
           nullable: true
+        price:
+          type: number
+          nullable: true
+        rating:
+          type: number
+          nullable: true
         detectedAt:
           type: string
           format: date-time

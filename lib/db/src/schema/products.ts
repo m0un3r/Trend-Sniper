@@ -14,6 +14,8 @@ export const productsTable = pgTable("products", {
   totalViews: integer("total_views").notNull().default(0),
   imageUrl: text("image_url"),
   affiliateUrl: text("affiliate_url"),
+  price: real("price"),
+  rating: real("rating"),
   detectedAt: timestamp("detected_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

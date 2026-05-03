@@ -25,6 +25,8 @@ export interface Product {
   totalViews: number;
   imageUrl?: string | null;
   affiliateUrl?: string | null;
+  price?: number | null;
+  rating?: number | null;
   detectedAt: string;
   updatedAt: string;
 }
