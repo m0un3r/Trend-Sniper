@@ -144,6 +144,8 @@ export const ListProductsPlatform = {
   tiktok: "tiktok",
   instagram: "instagram",
   facebook: "facebook",
+  amazon: "amazon",
+  shopify: "shopify",
   all: "all",
 } as const;
 
@@ -174,6 +176,8 @@ export const ListPostsPlatform = {
   tiktok: "tiktok",
   instagram: "instagram",
   facebook: "facebook",
+  amazon: "amazon",
+  shopify: "shopify",
   all: "all",
 } as const;
 

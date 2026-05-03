@@ -22,7 +22,9 @@ export const listProductsQueryLimitDefault = 20;
 export const listProductsQueryOffsetDefault = 0;
 
 export const ListProductsQueryParams = zod.object({
-  platform: zod.enum(["tiktok", "instagram", "facebook", "all"]).optional(),
+  platform: zod
+    .enum(["tiktok", "instagram", "facebook", "amazon", "shopify", "all"])
+    .optional(),
   category: zod
     .enum(["beauty", "tech", "fashion", "fitness", "home", "food", "all"])
     .optional(),
@@ -122,7 +124,9 @@ export const listPostsQueryLimitDefault = 20;
 export const listPostsQueryOffsetDefault = 0;
 
 export const ListPostsQueryParams = zod.object({
-  platform: zod.enum(["tiktok", "instagram", "facebook", "all"]).optional(),
+  platform: zod
+    .enum(["tiktok", "instagram", "facebook", "amazon", "shopify", "all"])
+    .optional(),
   productId: zod.coerce.number().optional(),
   limit: zod.coerce.number().default(listPostsQueryLimitDefault),
   offset: zod.coerce.number().default(listPostsQueryOffsetDefault),

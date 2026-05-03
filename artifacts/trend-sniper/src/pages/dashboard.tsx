@@ -22,16 +22,16 @@ function fmt(n: number): string {
   return String(n);
 }
 
-function TrendScoreBadge({ score }: { score: number }) {
-  const color =
-    score >= 80 ? "#10b981" : score >= 60 ? "#f59e0b" : "#ff0050";
+function TrendScoreBadge({ score }: { score: number | null }) {
+  const s = score ?? 0;
+  const color = s >= 80 ? "#10b981" : s >= 60 ? "#f59e0b" : "#ff0050";
   return (
     <span
       className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold tabular-nums"
       style={{ color, background: `${color}18` }}
     >
       <TrendingUp className="w-3 h-3" />
-      {score.toFixed(1)}
+      {s.toFixed(1)}
     </span>
   );
 }
@@ -150,7 +150,7 @@ export default function Dashboard() {
         />
         <StatCard
           label="Avg Trend Score"
-          value={summary ? `${summary.avgTrendScore}` : "0"}
+          value={summary ? `${summary.avgTrendScore ?? 0}` : "0"}
           icon={BarChart2}
           sub={`Top: ${summary?.topPlatform ?? "—"}`}
           loading={summaryLoading}
