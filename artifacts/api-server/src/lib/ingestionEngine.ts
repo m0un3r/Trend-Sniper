@@ -160,6 +160,19 @@ function getPostFingerprint(post: RawPost): string {
   return normalizeFingerprint(parts.join("|"));
 }
 
+async function fetchWithFallback<T>(
+  primary: () => Promise<T>,
+  fallback: () => Promise<T>,
+  label: string,
+): Promise<T> {
+  try {
+    return await primary();
+  } catch (err) {
+    logger.warn({ err, label }, "Ingestion: primary source failed, falling back");
+    return fallback();
+  }
+}
+
 // ── Main ingestion ───────────────────────────────────────────────────────────
 
 export interface IngestionResult {
@@ -206,9 +219,21 @@ export async function runIngestion(source: DataSource = "apify"): Promise<Ingest
     logger.info("Ingestion: running Bright Data datasets");
     const AMAZON_KEYWORDS = ["trending skincare", "viral gadgets", "best fitness gear", "trending fashion", "home decor bestsellers"];
     const [bdTt, bdIg, bdAmz] = await Promise.all([
-      fetchBrightDataTikTok(TIKTOK_HASHTAGS, 40),
-      fetchBrightDataInstagram(INSTAGRAM_HASHTAGS, 30),
-      fetchBrightDataAmazon(AMAZON_KEYWORDS, 30),
+      fetchWithFallback(
+        () => fetchBrightDataTikTok(TIKTOK_HASHTAGS, 40),
+        () => fetchTikTokPosts(TIKTOK_HASHTAGS, 40),
+        "tiktok",
+      ),
+      fetchWithFallback(
+        () => fetchBrightDataInstagram(INSTAGRAM_HASHTAGS, 30),
+        () => fetchInstagramPosts(INSTAGRAM_HASHTAGS, 30),
+        "instagram",
+      ),
+      fetchWithFallback(
+        () => fetchBrightDataAmazon(AMAZON_KEYWORDS, 30),
+        () => fetchAmazonProducts(AMAZON_CATEGORIES, 30),
+        "amazon",
+      ),
     ]);
     tiktokPosts = [...tiktokPosts, ...bdTt];
     instagramPosts = [...instagramPosts, ...bdIg];
