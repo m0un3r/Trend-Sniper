@@ -3,13 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: TrendSniper - Social Media Trend Intelligence API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: products
+    description: Trending product operations
+  - name: posts
+    description: Viral post operations
+  - name: dashboard
+    description: Dashboard summary operations
+  - name: alerts
+    description: Alert operations
 paths:
   /healthz:
     get:
@@ -24,6 +32,225 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      summary: List trending products
+      parameters:
+        - name: platform
+          in: query
+          schema:
+            type: string
+            enum: [tiktok, instagram, facebook, all]
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [beauty, tech, fashion, fitness, home, food, all]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of trending products
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductList"
+    post:
+      operationId: createProduct
+      tags: [products]
+      summary: Create a product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductBody"
+      responses:
+        "201":
+          description: Created product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+  /products/{id}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      summary: Get product detail with trend history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /posts:
+    get:
+      operationId: listPosts
+      tags: [posts]
+      summary: List viral posts
+      parameters:
+        - name: platform
+          in: query
+          schema:
+            type: string
+            enum: [tiktok, instagram, facebook, all]
+        - name: productId
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of viral posts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostList"
+
+  /posts/{id}:
+    get:
+      operationId: getPost
+      tags: [posts]
+      summary: Get post detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Post detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary stats
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/top-products:
+    get:
+      operationId: getTopProducts
+      tags: [dashboard]
+      summary: Get top trending products for dashboard feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Top trending products
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductList"
+
+  /dashboard/platform-breakdown:
+    get:
+      operationId: getPlatformBreakdown
+      tags: [dashboard]
+      summary: Get trend counts grouped by platform
+      responses:
+        "200":
+          description: Platform breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformBreakdown"
+
+  /alerts:
+    get:
+      operationId: listAlerts
+      tags: [alerts]
+      summary: List trend alerts
+      responses:
+        "200":
+          description: List of alerts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertList"
+    post:
+      operationId: createAlert
+      tags: [alerts]
+      summary: Create an alert for a product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAlertBody"
+      responses:
+        "201":
+          description: Created alert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Alert"
+
+  /alerts/{id}:
+    delete:
+      operationId: deleteAlert
+      tags: [alerts]
+      summary: Delete an alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +261,276 @@ components:
       required:
         - status
 
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+        platform:
+          type: string
+        trendScore:
+          type: number
+        velocity:
+          type: number
+        engagementRate:
+          type: number
+        totalPosts:
+          type: integer
+        totalViews:
+          type: integer
+        imageUrl:
+          type: string
+          nullable: true
+        affiliateUrl:
+          type: string
+          nullable: true
+        detectedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - category
+        - platform
+        - trendScore
+        - velocity
+        - engagementRate
+        - totalPosts
+        - totalViews
+        - detectedAt
+        - updatedAt
+
+    ProductDetail:
+      allOf:
+        - $ref: "#/components/schemas/Product"
+        - type: object
+          properties:
+            recentPosts:
+              type: array
+              items:
+                $ref: "#/components/schemas/Post"
+            trendHistory:
+              type: array
+              items:
+                $ref: "#/components/schemas/TrendPoint"
+          required:
+            - recentPosts
+            - trendHistory
+
+    TrendPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        score:
+          type: number
+        views:
+          type: integer
+      required:
+        - date
+        - score
+        - views
+
+    CreateProductBody:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        platform:
+          type: string
+        affiliateUrl:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+      required:
+        - name
+        - category
+        - platform
+
+    ProductList:
+      type: object
+      properties:
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+        total:
+          type: integer
+      required:
+        - products
+        - total
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+        platform:
+          type: string
+        videoUrl:
+          type: string
+          nullable: true
+        thumbnailUrl:
+          type: string
+          nullable: true
+        caption:
+          type: string
+          nullable: true
+        views:
+          type: integer
+        likes:
+          type: integer
+        comments:
+          type: integer
+        shares:
+          type: integer
+        trendScore:
+          type: number
+        creatorUsername:
+          type: string
+        creatorFollowers:
+          type: integer
+        productId:
+          type: integer
+          nullable: true
+        postedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - platform
+        - views
+        - likes
+        - comments
+        - shares
+        - trendScore
+        - creatorUsername
+        - creatorFollowers
+        - postedAt
+
+    PostList:
+      type: object
+      properties:
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+        total:
+          type: integer
+      required:
+        - posts
+        - total
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalProductsTracked:
+          type: integer
+        trendingNow:
+          type: integer
+        newThisWeek:
+          type: integer
+        totalPostsAnalyzed:
+          type: integer
+        avgTrendScore:
+          type: number
+        topCategory:
+          type: string
+        topPlatform:
+          type: string
+      required:
+        - totalProductsTracked
+        - trendingNow
+        - newThisWeek
+        - totalPostsAnalyzed
+        - avgTrendScore
+        - topCategory
+        - topPlatform
+
+    PlatformBreakdown:
+      type: object
+      properties:
+        platforms:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformStat"
+      required:
+        - platforms
+
+    PlatformStat:
+      type: object
+      properties:
+        platform:
+          type: string
+        count:
+          type: integer
+        avgScore:
+          type: number
+      required:
+        - platform
+        - count
+        - avgScore
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: integer
+        productId:
+          type: integer
+        productName:
+          type: string
+        threshold:
+          type: number
+        triggered:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - productId
+        - productName
+        - threshold
+        - triggered
+        - createdAt
+
+    AlertList:
+      type: object
+      properties:
+        alerts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Alert"
+      required:
+        - alerts
+
+    CreateAlertBody:
+      type: object
+      properties:
+        productId:
+          type: integer
+        threshold:
+          type: number
+      required:
+        - productId
+        - threshold

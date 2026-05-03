@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "TrendSniper"
+version = "1.0.0"
+id = "artifacts/trend-sniper"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22932
+
+[services.development]
+run = "pnpm --filter @workspace/trend-sniper run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/trend-sniper", "run", "build" ]
+publicDir = "artifacts/trend-sniper/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22932"
+BASE_PATH = "/"

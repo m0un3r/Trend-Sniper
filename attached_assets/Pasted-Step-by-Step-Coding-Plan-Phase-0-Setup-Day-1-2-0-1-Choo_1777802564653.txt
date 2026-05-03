@@ -1,0 +1,243 @@
+Step-by-Step Coding Plan
+Phase 0 — Setup (Day 1–2)
+0.1 Choose Stack
+
+Keep it simple and scalable:
+
+Backend: Node.js (Express) or Python (FastAPI)
+Database: PostgreSQL
+Cache/queue: Redis
+Frontend: React (Next.js recommended)
+0.2 Initialize Project
+
+Backend:
+
+Create project
+Setup API server
+Add environment config (.env)
+
+Frontend:
+
+Create Next.js app
+Setup basic routing
+Phase 1 — Data Ingestion (Week 1)
+Goal: Get social media data into your system
+1.1 Integrate Data Source
+
+Start with an API (don’t scrape yet).
+
+Tasks:
+
+Create /services/socialProvider.js
+Fetch:
+video URL
+caption
+likes, comments, shares, views
+creator info
+
+Store raw data temporarily.
+
+1.2 Create Database Schema
+
+Tables:
+
+posts
+
+id
+platform (tiktok, instagram, facebook)
+video_url
+caption
+views
+likes
+comments
+shares
+creator_id
+created_at
+
+creators
+
+id
+username
+followers
+
+products (empty for now)
+
+1.3 Save Data
+Write ingestion script:
+/jobs/fetchPosts.js
+
+Logic:
+
+Fetch API data
+Normalize format
+Insert into database
+
+Run every hour (cron job)
+
+Phase 2 — Trend Engine (Week 2)
+Goal: Rank posts by “virality”
+2.1 Implement Metrics
+
+Create:
+/utils/trendScore.js
+
+Calculate:
+
+engagement rate
+velocity (views growth)
+basic score
+2.2 Add Score to Database
+
+Add column:
+
+trend_score in posts table
+
+Update score on each fetch
+
+2.3 Build Ranking Query
+
+Create endpoint:
+
+GET /trending
+
+Returns:
+
+top 50 posts sorted by trend_score
+Phase 3 — Product Detection (Week 3)
+Goal: Extract products from content
+3.1 NLP Extraction (Start Simple)
+
+Create:
+/services/productExtractor.js
+
+Logic:
+
+Scan captions + hashtags
+Detect keywords like:
+“buy”
+“amazon”
+product names
+
+Store results in:
+
+products
+
+id
+name
+
+post_products
+
+post_id
+product_id
+3.2 Link Detection
+Extract URLs from captions
+Match domains:
+Amazon
+Shopify
+TikTok Shop
+
+Attach product to post
+
+3.3 Group Similar Products
+
+Basic approach:
+
+Normalize names (lowercase, remove symbols)
+Merge duplicates
+Phase 4 — API Layer (Week 4)
+Goal: Expose data to frontend
+4.1 Build Endpoints
+GET /trending → top posts
+GET /products → trending products
+GET /products/:id → product details
+4.2 Product Ranking
+
+Create:
+/utils/productScore.js
+
+Score based on:
+
+number of posts
+average trend score
+growth rate
+Phase 5 — Frontend MVP (Week 5)
+Goal: Make it usable
+5.1 Dashboard Page
+
+Show:
+
+trending products
+trending posts
+5.2 Product Page
+
+Display:
+
+product name
+trend score
+related videos
+5.3 Filters
+
+Add:
+
+platform filter
+category (basic keyword-based)
+Phase 6 — Automation & Scaling (Week 6)
+Goal: Make it run continuously
+6.1 Background Jobs
+
+Use Redis queue:
+
+Jobs:
+
+fetch posts
+calculate scores
+extract products
+6.2 Scheduling
+Run ingestion every 30–60 minutes
+Run scoring after ingestion
+Phase 7 — Advanced Features (After MVP)
+7.1 Add Scraping (Optional but powerful)
+
+If APIs are limited:
+
+Use Playwright
+Rotate proxies
+7.2 Add Computer Vision
+Extract frames from videos
+Detect objects (products)
+7.3 Add Alerts
+Notify when:
+product score spikes
+new trend appears
+7.4 Add AI Insights
+
+Generate:
+
+“Why this product is trending”
+“Predicted growth”
+Phase 8 — Deployment
+Backend:
+Deploy on:
+AWS / Railway / Render
+Database:
+Managed PostgreSQL
+Frontend:
+Vercel
+Phase 9 — Monetization
+
+Add:
+
+Auth system
+Subscription (Stripe)
+
+Limit:
+
+number of trends visible
+refresh frequency
+Final Reality Check
+
+If you follow this plan:
+
+Week 1–2 → You’ll already have trending posts
+Week 3–4 → You’ll have product detection
+Week 5 → You’ll have a working app

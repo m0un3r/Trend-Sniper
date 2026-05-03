@@ -1,0 +1,147 @@
+Full Plan: Social Media Trend Sniping App
+1. Concept Overview
+
+The app is a social trend intelligence platform designed to identify viral content on platforms like TikTok, Instagram, and Facebook, extract the products being promoted, and rank them based on how strongly they are trending.
+
+The goal is to help users (such as dropshippers, e-commerce brands, and marketers) discover winning products early by analyzing social media activity.
+
+2. Data Sources Strategy
+
+There are three main ways to collect data:
+
+Option 1: Use third-party aggregator APIs
+This is the fastest and safest way to start. These services provide access to social media posts, hashtags, engagement metrics, and trends across multiple platforms.
+
+Option 2: Build custom scrapers
+You can scrape platforms like TikTok, Instagram Reels, and Facebook Ads Library using tools like Playwright or Puppeteer. This gives more control but comes with risks such as IP blocking and legal issues.
+
+Option 3: Hybrid approach
+Combine APIs for stability with scraping for deeper insights. This is the best long-term strategy.
+
+3. Trend Detection Engine
+
+The core of the app is a system that ranks how “trending” something is.
+
+Key metrics to calculate include:
+
+Views velocity (how fast views increase)
+Engagement rate (likes, comments, shares relative to views)
+Growth acceleration (sudden spikes)
+Frequency (how often the same product appears across posts)
+Creator influence (follower count, credibility)
+
+Example scoring formula:
+
+Trend Score =
+0.4 × velocity +
+0.3 × engagement +
+0.2 × frequency +
+0.1 × creator influence
+
+4. Product Extraction
+
+This is one of the most important parts.
+
+Methods to detect products:
+
+Text analysis (NLP)
+Analyze captions, hashtags, and comments to identify product names and keywords.
+Computer vision
+Analyze video frames to detect objects using AI models such as YOLO or CLIP.
+Link extraction
+Detect affiliate links or product URLs (TikTok Shop, Amazon, Shopify).
+5. Backend Architecture
+
+Suggested technology stack:
+
+Backend: Node.js or Python (FastAPI)
+Database:
+PostgreSQL for structured data
+Elasticsearch for searching trends
+Task queue:
+Redis with BullMQ or Celery
+
+Data pipeline flow:
+Fetch data → Clean data → Analyze → Score → Store → Serve
+
+6. Frontend Application
+
+Core features:
+
+Trending dashboard
+Displays top trending products and related viral posts.
+
+Product detail page
+Shows trend graphs, associated videos, and influencers promoting the product.
+
+Filters
+Allow filtering by platform, category (beauty, tech, fashion), and region.
+
+Alerts
+Notify users when a product rapidly increases in popularity.
+
+7. Monetization Strategy
+
+Offer the app as a subscription service (SaaS), typically ranging from $19 to $99 per month.
+
+Target users:
+
+Dropshippers
+E-commerce brands
+Influencers
+Marketing agencies
+8. Legal and Compliance Considerations
+
+Safe practices:
+
+Use publicly available data
+Provide analytics rather than raw data redistribution
+
+Risky practices:
+
+Aggressive scraping
+Storing personal user data (especially under GDPR in Europe)
+Violating platform terms of service
+
+Potential consequences include IP bans, account suspension, or legal action.
+
+9. MVP Development Roadmap
+
+Phase 1 (2–4 weeks):
+
+Use a third-party API
+Display trending TikTok videos
+Implement basic ranking
+
+Phase 2:
+
+Add product detection using text analysis
+Improve trend scoring
+
+Phase 3:
+
+Expand to Instagram and Facebook
+Add alerts and a better dashboard
+
+Phase 4:
+
+Add AI insights such as:
+Why a product is trending
+Predicting future trends
+10. Differentiation Opportunities
+
+To stand out from competitors, consider adding:
+
+Trend prediction using AI
+Product sourcing integration (Alibaba, Amazon)
+Ad intelligence (track which ads are scaling)
+Automated ad or content generation based on trends
+Final Notes
+
+Building this app is feasible but not simple. The biggest challenges are:
+
+Accessing reliable data
+Handling platform restrictions
+Building a strong trend-ranking algorithm
+
+The real competitive advantage will come from the quality of your data and how accurately you identify trends early.
