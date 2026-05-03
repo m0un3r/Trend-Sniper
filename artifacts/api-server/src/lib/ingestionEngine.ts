@@ -1,42 +1,56 @@
 /**
  * Ingestion Engine
  *
- * Fetches fresh posts from Apify actors, extracts product signals,
- * upserts products + posts into the DB, and clears old demo data.
+ * Fetches fresh posts/products from Apify actors across all 5 platforms,
+ * extracts product signals, upserts products + posts into the DB,
+ * and clears old demo data before writing real data.
  */
 import { db, productsTable, postsTable, alertsTable } from "@workspace/db";
-import { eq, inArray } from "drizzle-orm";
 import { logger } from "./logger";
-import { fetchTikTokPosts, fetchInstagramPosts, fetchFacebookPosts, type RawPost } from "./apifyService";
+import {
+  fetchTikTokPosts,
+  fetchInstagramPosts,
+  fetchFacebookPosts,
+  fetchAmazonProducts,
+  fetchShopifyProducts,
+  type RawPost,
+} from "./apifyService";
 
-// ── Hashtag / keyword targets per category ─────────────────────────────────
+// ── Targets ─────────────────────────────────────────────────────────────────
 
 const TIKTOK_HASHTAGS = [
-  "tiktokmademebuyit",
-  "viralproduct",
-  "amazonfinds",
-  "skincare",
-  "gadgets",
-  "fashionfinds",
-  "fitness",
+  "tiktokmademebuyit", "viralproduct", "amazonfinds",
+  "skincare", "gadgets", "fashionfinds", "fitness",
 ];
 
 const INSTAGRAM_HASHTAGS = [
-  "instashop",
-  "beautytips",
-  "techgadgets",
-  "outfitoftheday",
-  "workoutmotivation",
+  "instashop", "beautytips", "techgadgets",
+  "outfitoftheday", "workoutmotivation",
 ];
 
 const FACEBOOK_QUERIES = [
-  "viral product 2025",
-  "best skincare product",
-  "trending gadget",
-  "fashion must have",
+  "viral product 2025", "best skincare product",
+  "trending gadget", "fashion must have",
 ];
 
-// ── Product signal extractor ───────────────────────────────────────────────
+// Amazon bestseller category URLs (public, no login required)
+const AMAZON_CATEGORIES = [
+  "https://www.amazon.com/Best-Sellers-Beauty/zgbs/beauty",
+  "https://www.amazon.com/Best-Sellers-Electronics/zgbs/electronics",
+  "https://www.amazon.com/Best-Sellers-Clothing/zgbs/fashion",
+  "https://www.amazon.com/Best-Sellers-Sports-Outdoors/zgbs/sporting-goods",
+  "https://www.amazon.com/Best-Sellers-Home-Kitchen/zgbs/home-garden",
+];
+
+// Popular Shopify-powered stores with public product catalogs
+const SHOPIFY_STORES = [
+  "https://gymshark.com/collections/all",
+  "https://skims.com/collections/all",
+  "https://www.fashionnova.com/collections/new-arrivals",
+  "https://www.ruggable.com/collections/rugs",
+];
+
+// ── Product signal extractor (social posts) ─────────────────────────────────
 
 const PRODUCT_PATTERNS: Array<{ regex: RegExp; name: string; category: string }> = [
   { regex: /skin\s*care|serum|moisturi[sz]er|sunscreen|retinol|face\s*mask/i, name: "Skincare Trend", category: "beauty" },
@@ -56,6 +70,17 @@ const PRODUCT_PATTERNS: Array<{ regex: RegExp; name: string; category: string }>
 ];
 
 function extractProductSignal(post: RawPost): { name: string; category: string } | null {
+  // E-commerce posts carry explicit product names
+  if (post.platform === "amazon" || post.platform === "shopify") {
+    if (post.productName) {
+      const cap = post.productName.toLowerCase();
+      for (const p of PRODUCT_PATTERNS) {
+        if (p.regex.test(cap)) return { name: post.productName, category: p.category };
+      }
+      // Fallback category based on caption keywords
+      return { name: post.productName, category: guessCategory(post.caption ?? post.productName) };
+    }
+  }
   const text = [post.caption].filter(Boolean).join(" ");
   if (!text) return null;
   for (const p of PRODUCT_PATTERNS) {
@@ -64,17 +89,34 @@ function extractProductSignal(post: RawPost): { name: string; category: string }
   return null;
 }
 
+function guessCategory(text: string): string {
+  const t = text.toLowerCase();
+  if (/beauty|skin|hair|makeup|serum|cream/.test(t)) return "beauty";
+  if (/tech|phone|laptop|computer|electronic|gadget/.test(t)) return "tech";
+  if (/fashion|cloth|dress|shirt|shoe|bag/.test(t)) return "fashion";
+  if (/fitness|gym|sport|workout|yoga/.test(t)) return "fitness";
+  if (/home|kitchen|decor|furniture|rug/.test(t)) return "home";
+  if (/food|drink|coffee|nutrition|supplement/.test(t)) return "food";
+  return "other";
+}
+
 function computeTrendScore(post: RawPost): number {
+  if (post.platform === "amazon") {
+    const rating = (post.rating ?? 0) / 5;
+    const reviewScore = Math.min(100, Math.log10(post.views + 1) * 25);
+    return Math.round((rating * 40 + reviewScore * 0.6) * 10) / 10;
+  }
+  if (post.platform === "shopify") {
+    const viewScore = Math.min(100, Math.log10(post.views + 1) * 22);
+    return Math.round(Math.min(100, viewScore) * 10) / 10;
+  }
   const engRate = post.views > 0 ? ((post.likes + post.comments + post.shares) / post.views) * 100 : 0;
   const viewScore = Math.min(100, Math.log10(post.views + 1) * 20);
   const engScore = Math.min(100, engRate * 10);
-  const raw = 0.6 * viewScore + 0.4 * engScore;
-  return Math.round(Math.min(100, raw) * 10) / 10;
+  return Math.round(Math.min(100, 0.6 * viewScore + 0.4 * engScore) * 10) / 10;
 }
 
-// ── Platform-specific product name refinement ──────────────────────────────
-
-function refineName(base: string, platform: string, caption: string | null): string {
+function refineName(base: string, caption: string | null): string {
   const cap = (caption ?? "").toLowerCase();
   if (base === "Skincare Trend") {
     if (/serum/i.test(cap)) return "Viral Serum";
@@ -91,60 +133,83 @@ function refineName(base: string, platform: string, caption: string | null): str
   return base;
 }
 
-// ── Main ingestion function ────────────────────────────────────────────────
+// ── Main ingestion ───────────────────────────────────────────────────────────
 
 export interface IngestionResult {
-  platforms: { tiktok: number; instagram: number; facebook: number };
+  platforms: {
+    tiktok: number;
+    instagram: number;
+    facebook: number;
+    amazon: number;
+    shopify: number;
+  };
   productsUpserted: number;
   postsInserted: number;
   demoDataCleared: boolean;
 }
 
 export async function runIngestion(): Promise<IngestionResult> {
-  logger.info("Ingestion: starting full social media fetch");
+  logger.info("Ingestion: starting full 5-platform fetch");
 
-  // 1. Fetch from all three platforms in parallel
-  const [tiktokPosts, instagramPosts, facebookPosts] = await Promise.all([
+  // 1. Fetch all 5 sources in parallel
+  const [tiktokPosts, instagramPosts, facebookPosts, amazonProducts, shopifyProducts] = await Promise.all([
     fetchTikTokPosts(TIKTOK_HASHTAGS, 40),
     fetchInstagramPosts(INSTAGRAM_HASHTAGS, 30),
     fetchFacebookPosts(FACEBOOK_QUERIES, 20),
+    fetchAmazonProducts(AMAZON_CATEGORIES, 30),
+    fetchShopifyProducts(SHOPIFY_STORES, 30),
   ]);
 
-  const allPosts: RawPost[] = [...tiktokPosts, ...instagramPosts, ...facebookPosts];
+  const allPosts: RawPost[] = [
+    ...tiktokPosts, ...instagramPosts, ...facebookPosts,
+    ...amazonProducts, ...shopifyProducts,
+  ];
 
   logger.info(
-    { tiktok: tiktokPosts.length, instagram: instagramPosts.length, facebook: facebookPosts.length, total: allPosts.length },
+    {
+      tiktok: tiktokPosts.length,
+      instagram: instagramPosts.length,
+      facebook: facebookPosts.length,
+      amazon: amazonProducts.length,
+      shopify: shopifyProducts.length,
+      total: allPosts.length,
+    },
     "Ingestion: fetch complete"
   );
 
-  // 2. Clear all demo/old data
+  // 2. Clear existing data
   await db.delete(alertsTable);
   await db.delete(postsTable);
   await db.delete(productsTable);
   logger.info("Ingestion: cleared existing data");
 
-  // 3. Group posts by product signal, upsert products
+  // 3. Group by product signal
   const productMap = new Map<string, { name: string; category: string; platform: string; posts: RawPost[] }>();
 
   for (const post of allPosts) {
     const signal = extractProductSignal(post);
     if (!signal) continue;
-    const refined = refineName(signal.name, post.platform, post.caption);
-    const key = `${refined}::${post.platform}`;
+
+    // E-commerce: each item is its own product (keyed by exact name)
+    // Social: group similar signals per platform
+    const isEcom = post.platform === "amazon" || post.platform === "shopify";
+    const productName = isEcom ? signal.name : refineName(signal.name, post.caption);
+    const key = isEcom ? `${productName}::${post.platform}` : `${productName}::${post.platform}`;
+
     if (!productMap.has(key)) {
-      productMap.set(key, { name: refined, category: signal.category, platform: post.platform, posts: [] });
+      productMap.set(key, { name: productName, category: signal.category, platform: post.platform, posts: [] });
     }
     productMap.get(key)!.posts.push(post);
   }
 
-  // If we got zero signals (actor returned nothing useful), insert a placeholder set
   if (productMap.size === 0) {
-    logger.warn("Ingestion: no product signals detected in scraped posts — DB stays empty, no demo data re-inserted");
+    logger.warn("Ingestion: no product signals detected — DB empty");
     return {
-      platforms: { tiktok: tiktokPosts.length, instagram: instagramPosts.length, facebook: facebookPosts.length },
-      productsUpserted: 0,
-      postsInserted: 0,
-      demoDataCleared: true,
+      platforms: {
+        tiktok: tiktokPosts.length, instagram: instagramPosts.length,
+        facebook: facebookPosts.length, amazon: amazonProducts.length, shopify: shopifyProducts.length,
+      },
+      productsUpserted: 0, postsInserted: 0, demoDataCleared: true,
     };
   }
 
@@ -153,6 +218,8 @@ export async function runIngestion(): Promise<IngestionResult> {
 
   for (const [, productData] of productMap) {
     const { name, category, platform, posts } = productData;
+    const isEcom = platform === "amazon" || platform === "shopify";
+
     const totalViews = posts.reduce((s, p) => s + p.views, 0);
     const totalLikes = posts.reduce((s, p) => s + p.likes, 0);
     const totalComments = posts.reduce((s, p) => s + p.comments, 0);
@@ -163,7 +230,14 @@ export async function runIngestion(): Promise<IngestionResult> {
       : 0;
     const avgScore = posts.reduce((s, p) => s + computeTrendScore(p), 0) / posts.length;
     const trendScore = Math.round(avgScore * 10) / 10;
-    const velocity = Math.min(100, Math.round((totalViews / Math.max(1, totalPosts)) / 10000 * 10) / 10);
+    const velocity = isEcom
+      ? Math.min(100, Math.round((totalViews / Math.max(1, totalPosts)) / 5000 * 10) / 10)
+      : Math.min(100, Math.round((totalViews / Math.max(1, totalPosts)) / 10000 * 10) / 10);
+
+    // For e-commerce, carry through affiliate URL and price from the first post
+    const firstPost = posts[0];
+    const affiliateUrl = isEcom ? (firstPost?.affiliateUrl ?? null) : null;
+    const imageUrl = posts.find((p) => p.thumbnailUrl)?.thumbnailUrl ?? null;
 
     const [inserted] = await db
       .insert(productsTable)
@@ -176,8 +250,8 @@ export async function runIngestion(): Promise<IngestionResult> {
         engagementRate,
         totalPosts,
         totalViews,
-        imageUrl: posts.find((p) => p.thumbnailUrl)?.thumbnailUrl ?? null,
-        affiliateUrl: null,
+        imageUrl,
+        affiliateUrl,
         detectedAt: new Date(),
         updatedAt: new Date(),
       })
@@ -185,7 +259,6 @@ export async function runIngestion(): Promise<IngestionResult> {
 
     productsUpserted++;
 
-    // Insert posts linked to this product
     for (const post of posts.slice(0, 10)) {
       await db.insert(postsTable).values({
         platform: post.platform,
@@ -206,8 +279,11 @@ export async function runIngestion(): Promise<IngestionResult> {
     }
   }
 
-  // Also insert posts that didn't match any product signal (for the Posts page)
-  const unmatched = allPosts.filter((p) => !extractProductSignal(p)).slice(0, 30);
+  // Unmatched social posts (no product signal) go in for browsing
+  const unmatched = allPosts
+    .filter((p) => p.platform !== "amazon" && p.platform !== "shopify" && !extractProductSignal(p))
+    .slice(0, 30);
+
   for (const post of unmatched) {
     await db.insert(postsTable).values({
       platform: post.platform,
@@ -230,7 +306,13 @@ export async function runIngestion(): Promise<IngestionResult> {
   logger.info({ productsUpserted, postsInserted }, "Ingestion: complete");
 
   return {
-    platforms: { tiktok: tiktokPosts.length, instagram: instagramPosts.length, facebook: facebookPosts.length },
+    platforms: {
+      tiktok: tiktokPosts.length,
+      instagram: instagramPosts.length,
+      facebook: facebookPosts.length,
+      amazon: amazonProducts.length,
+      shopify: shopifyProducts.length,
+    },
     productsUpserted,
     postsInserted,
     demoDataCleared: true,

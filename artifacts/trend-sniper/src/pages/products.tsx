@@ -32,7 +32,7 @@ function VelocityBar({ velocity, color }: { velocity: number; color: string }) {
   );
 }
 
-const PLATFORMS = ["all", "tiktok", "instagram", "facebook"] as const;
+const PLATFORMS = ["all", "tiktok", "instagram", "facebook", "amazon", "shopify"] as const;
 const CATEGORIES = ["all", "beauty", "tech", "fashion", "fitness", "home", "food"] as const;
 type Platform = (typeof PLATFORMS)[number];
 type Category = (typeof CATEGORIES)[number];

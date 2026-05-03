@@ -7,7 +7,7 @@ import { PlatformBadge, platformColor } from "@/components/platform-badge";
 import { PageHeader } from "@/components/page-header";
 import { useListPosts } from "@workspace/api-client-react";
 
-const PLATFORMS = ["all", "tiktok", "instagram", "facebook"] as const;
+const PLATFORMS = ["all", "tiktok", "instagram", "facebook", "amazon", "shopify"] as const;
 type Platform = (typeof PLATFORMS)[number];
 
 function TrendScoreBadge({ score }: { score: number }) {

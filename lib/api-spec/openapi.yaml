@@ -45,7 +45,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [tiktok, instagram, facebook, all]
+            enum: [tiktok, instagram, facebook, amazon, shopify, all]
         - name: category
           in: query
           schema:
@@ -121,7 +121,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [tiktok, instagram, facebook, all]
+            enum: [tiktok, instagram, facebook, amazon, shopify, all]
         - name: productId
           in: query
           schema:

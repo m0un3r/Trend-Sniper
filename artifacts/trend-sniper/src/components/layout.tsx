@@ -6,6 +6,8 @@ const PLATFORM_DOTS = [
   { color: "#ff0050", label: "TikTok" },
   { color: "#a855f7", label: "Instagram" },
   { color: "#3b82f6", label: "Facebook" },
+  { color: "#ff9900", label: "Amazon" },
+  { color: "#95bf47", label: "Shopify" },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -46,14 +48,14 @@ export function Layout({ children }: { children: ReactNode }) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all relative ${
                   isActive
                     ? "bg-white/8 text-white font-semibold shadow-sm"
                     : "text-muted-foreground hover:bg-white/5 hover:text-white"
                 }`}
               >
                 {isActive && (
-                  <span className="absolute left-0 w-0.5 h-6 rounded-r bg-[#ff0050] ml-0" />
+                  <span className="absolute left-0 w-0.5 h-6 rounded-r bg-[#ff0050]" />
                 )}
                 <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#ff0050]" : "text-muted-foreground"}`} />
                 {item.name}
