@@ -187,6 +187,14 @@ export interface IngestionResult {
   postsInserted: number;
   demoDataCleared: boolean;
   source: DataSource;
+  confidence: number;
+}
+
+function computeSourceConfidence(sourceCounts: { apify: number; brightdata: number }): number {
+  const total = sourceCounts.apify + sourceCounts.brightdata;
+  if (total === 0) return 0;
+  const overlapBoost = Math.min(sourceCounts.apify, sourceCounts.brightdata) / total;
+  return Math.round((0.65 + overlapBoost * 0.35) * 100);
 }
 
 export async function runIngestion(source: DataSource = "apify"): Promise<IngestionResult> {
@@ -197,6 +205,8 @@ export async function runIngestion(source: DataSource = "apify"): Promise<Ingest
   let facebookPosts: RawPost[] = [];
   let amazonProducts: RawPost[] = [];
   let shopifyProducts: RawPost[] = [];
+  let apifyCount = 0;
+  let brightdataCount = 0;
 
   if (source === "apify" || source === "both") {
     logger.info("Ingestion: running Apify actors");
@@ -212,6 +222,7 @@ export async function runIngestion(source: DataSource = "apify"): Promise<Ingest
     facebookPosts = [...facebookPosts, ...fb];
     amazonProducts = [...amazonProducts, ...amz];
     shopifyProducts = [...shopifyProducts, ...shp];
+    apifyCount += tt.length + ig.length + fb.length + amz.length + shp.length;
     logger.info({ tiktok: tt.length, instagram: ig.length, facebook: fb.length, amazon: amz.length, shopify: shp.length }, "Ingestion: Apify complete");
   }
 
@@ -238,6 +249,7 @@ export async function runIngestion(source: DataSource = "apify"): Promise<Ingest
     tiktokPosts = [...tiktokPosts, ...bdTt];
     instagramPosts = [...instagramPosts, ...bdIg];
     amazonProducts = [...amazonProducts, ...bdAmz];
+    brightdataCount += bdTt.length + bdIg.length + bdAmz.length;
     logger.info({ tiktok: bdTt.length, instagram: bdIg.length, amazon: bdAmz.length }, "Ingestion: Bright Data complete");
   }
 
@@ -416,5 +428,6 @@ export async function runIngestion(source: DataSource = "apify"): Promise<Ingest
     postsInserted,
     demoDataCleared: true,
     source,
+    confidence: computeSourceConfidence({ apify: apifyCount, brightdata: brightdataCount }),
   };
 }

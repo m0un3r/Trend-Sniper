@@ -339,6 +339,8 @@ components:
         affiliateUrl:
           type: string
           nullable: true
+        confidence:
+          type: integer
         price:
           type: number
           nullable: true

@@ -43,6 +43,19 @@ function StarRatingLarge({ rating }: { rating: number }) {
   );
 }
 
+function ConfidenceBadge({ confidence }: { confidence: number | null | undefined }) {
+  const c = confidence ?? 0;
+  const color = c >= 85 ? "#10b981" : c >= 70 ? "#f59e0b" : "#ff0050";
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-black tabular-nums"
+      style={{ color, background: `${color}18` }}
+    >
+      {c}% source confidence
+    </span>
+  );
+}
+
 export default function ProductDetail() {
   const params = useParams<{ id: string }>();
   const id = parseInt(params.id ?? "0");
@@ -102,6 +115,7 @@ export default function ProductDetail() {
                     <TrendingUp className="w-4 h-4" />
                     {(product?.trendScore ?? 0).toFixed(1)} trend score
                   </span>
+                  <ConfidenceBadge confidence={(product as { confidence?: number })?.confidence ?? null} />
                   {/* Price badge — e-commerce only */}
                   {isEcom && product?.price != null && (
                     <span

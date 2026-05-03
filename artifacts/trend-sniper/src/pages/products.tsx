@@ -21,6 +21,19 @@ function TrendScoreBadge({ score }: { score: number | null }) {
   );
 }
 
+function ConfidenceBadge({ confidence }: { confidence: number | null | undefined }) {
+  const c = confidence ?? 0;
+  const color = c >= 85 ? "#10b981" : c >= 70 ? "#f59e0b" : "#ff0050";
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold tabular-nums shrink-0"
+      style={{ color, background: `${color}18` }}
+    >
+      {c}% confidence
+    </span>
+  );
+}
+
 function StarRating({ rating }: { rating: number }) {
   const full = Math.floor(rating);
   const hasHalf = rating - full >= 0.5;
@@ -159,7 +172,10 @@ export default function Products() {
                         </p>
                         <p className="text-xs text-muted-foreground capitalize mt-0.5">{product.category}</p>
                       </div>
-                      <TrendScoreBadge score={product.trendScore} />
+                      <div className="flex flex-col items-end gap-1">
+                        <TrendScoreBadge score={product.trendScore} />
+                        <ConfidenceBadge confidence={(product as { confidence?: number }).confidence ?? null} />
+                      </div>
                     </div>
 
                     {/* Platform badge + e-commerce signals */}
