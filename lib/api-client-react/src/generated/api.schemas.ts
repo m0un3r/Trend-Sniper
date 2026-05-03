@@ -118,6 +118,18 @@ export interface CreateAlertBody {
   threshold: number;
 }
 
+export type IngestionStatusLastResult = { [key: string]: unknown } | null;
+
+export interface IngestionStatus {
+  running: boolean;
+  lastRanAt?: string | null;
+  lastResult?: IngestionStatusLastResult;
+}
+
+export interface IngestionStarted {
+  message: string;
+}
+
 export type ListProductsParams = {
   platform?: ListProductsPlatform;
   category?: ListProductsCategory;

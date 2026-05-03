@@ -5,6 +5,7 @@ import postsRouter from "./posts";
 import dashboardRouter from "./dashboard";
 import alertsRouter from "./alerts";
 import trendsRouter from "./trends";
+import ingestionRouter from "./ingestion";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(postsRouter);
 router.use(dashboardRouter);
 router.use(alertsRouter);
 router.use(trendsRouter);
+router.use(ingestionRouter);
 
 export default router;

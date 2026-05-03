@@ -9,6 +9,7 @@ import Products from "@/pages/products";
 import ProductDetail from "@/pages/product-detail";
 import Posts from "@/pages/posts";
 import Alerts from "@/pages/alerts";
+import Sync from "@/pages/sync";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +29,7 @@ function Router() {
         <Route path="/products/:id" component={ProductDetail} />
         <Route path="/posts" component={Posts} />
         <Route path="/alerts" component={Alerts} />
+        <Route path="/sync" component={Sync} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

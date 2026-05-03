@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, LayoutDashboard, Package, MessageSquare, Bell, Settings, Zap } from "lucide-react";
+import { Activity, LayoutDashboard, Package, MessageSquare, Bell, Settings, Zap, RefreshCw } from "lucide-react";
 
 const PLATFORM_DOTS = [
   { color: "#ff0050", label: "TikTok" },
@@ -16,6 +16,7 @@ export function Layout({ children }: { children: ReactNode }) {
     { name: "Products", href: "/products", icon: Package },
     { name: "Posts", href: "/posts", icon: MessageSquare },
     { name: "Alerts", href: "/alerts", icon: Bell },
+    { name: "Data Sync", href: "/sync", icon: RefreshCw },
   ];
 
   return (

@@ -18,6 +18,8 @@ tags:
     description: Dashboard summary operations
   - name: alerts
     description: Alert operations
+  - name: ingestion
+    description: Social media data ingestion
 paths:
   /healthz:
     get:
@@ -248,6 +250,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LiveTrends"
+
+  /ingestion/status:
+    get:
+      operationId: getIngestionStatus
+      tags: [ingestion]
+      summary: Get ingestion status and last result
+      responses:
+        "200":
+          description: Ingestion status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestionStatus"
+
+  /ingestion/run:
+    post:
+      operationId: runIngestion
+      tags: [ingestion]
+      summary: Start a full social media data ingestion (clears demo data, fetches real posts)
+      responses:
+        "200":
+          description: Ingestion started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestionStarted"
+        "409":
+          description: Already running
 
   /alerts/{id}:
     delete:
@@ -560,3 +590,26 @@ components:
       required:
         - productId
         - threshold
+
+    IngestionStatus:
+      type: object
+      properties:
+        running:
+          type: boolean
+        lastRanAt:
+          type: string
+          nullable: true
+        lastResult:
+          type: object
+          nullable: true
+          additionalProperties: true
+      required:
+        - running
+
+    IngestionStarted:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message

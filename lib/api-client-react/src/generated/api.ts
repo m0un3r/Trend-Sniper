@@ -25,6 +25,8 @@ import type {
   Error,
   GetTopProductsParams,
   HealthStatus,
+  IngestionStarted,
+  IngestionStatus,
   ListPostsParams,
   ListProductsParams,
   LiveTrends,
@@ -1036,6 +1038,162 @@ export function useGetLiveTrends<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Get ingestion status and last result
+ */
+export const getGetIngestionStatusUrl = () => {
+  return `/api/ingestion/status`;
+};
+
+export const getIngestionStatus = async (
+  options?: RequestInit,
+): Promise<IngestionStatus> => {
+  return customFetch<IngestionStatus>(getGetIngestionStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetIngestionStatusQueryKey = () => {
+  return [`/api/ingestion/status`] as const;
+};
+
+export const getGetIngestionStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getIngestionStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIngestionStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetIngestionStatusQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getIngestionStatus>>
+  > = ({ signal }) => getIngestionStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIngestionStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIngestionStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIngestionStatus>>
+>;
+export type GetIngestionStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get ingestion status and last result
+ */
+
+export function useGetIngestionStatus<
+  TData = Awaited<ReturnType<typeof getIngestionStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIngestionStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIngestionStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Start a full social media data ingestion (clears demo data, fetches real posts)
+ */
+export const getRunIngestionUrl = () => {
+  return `/api/ingestion/run`;
+};
+
+export const runIngestion = async (
+  options?: RequestInit,
+): Promise<IngestionStarted> => {
+  return customFetch<IngestionStarted>(getRunIngestionUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRunIngestionMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runIngestion>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof runIngestion>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["runIngestion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof runIngestion>>,
+    void
+  > = () => {
+    return runIngestion(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RunIngestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof runIngestion>>
+>;
+
+export type RunIngestionMutationError = ErrorType<void>;
+
+/**
+ * @summary Start a full social media data ingestion (clears demo data, fetches real posts)
+ */
+export const useRunIngestion = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runIngestion>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof runIngestion>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getRunIngestionMutationOptions(options));
+};
 
 /**
  * @summary Delete an alert

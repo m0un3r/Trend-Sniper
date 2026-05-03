@@ -279,6 +279,22 @@ export const GetLiveTrendsResponse = zod.object({
 });
 
 /**
+ * @summary Get ingestion status and last result
+ */
+export const GetIngestionStatusResponse = zod.object({
+  running: zod.boolean(),
+  lastRanAt: zod.string().nullish(),
+  lastResult: zod.record(zod.string(), zod.unknown()).nullish(),
+});
+
+/**
+ * @summary Start a full social media data ingestion (clears demo data, fetches real posts)
+ */
+export const RunIngestionResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * @summary Delete an alert
  */
 export const DeleteAlertParams = zod.object({
