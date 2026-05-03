@@ -255,6 +255,30 @@ export const CreateAlertBody = zod.object({
 });
 
 /**
+ * @summary Get live trend status and top movers
+ */
+export const GetLiveTrendsResponse = zod.object({
+  lastUpdatedAt: zod.string().nullish(),
+  topMovers: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      category: zod.string(),
+      platform: zod.string(),
+      trendScore: zod.number(),
+      velocity: zod.number(),
+      engagementRate: zod.number(),
+      totalPosts: zod.number(),
+      totalViews: zod.number(),
+      imageUrl: zod.string().nullish(),
+      affiliateUrl: zod.string().nullish(),
+      detectedAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
  * @summary Delete an alert
  */
 export const DeleteAlertParams = zod.object({

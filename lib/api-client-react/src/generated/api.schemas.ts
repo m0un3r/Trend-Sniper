@@ -108,6 +108,11 @@ export interface AlertList {
   alerts: Alert[];
 }
 
+export interface LiveTrends {
+  lastUpdatedAt?: string | null;
+  topMovers: Product[];
+}
+
 export interface CreateAlertBody {
   productId: number;
   threshold: number;

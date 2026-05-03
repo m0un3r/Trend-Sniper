@@ -27,6 +27,7 @@ import type {
   HealthStatus,
   ListPostsParams,
   ListProductsParams,
+  LiveTrends,
   PlatformBreakdown,
   Post,
   PostList,
@@ -960,6 +961,81 @@ export const useCreateAlert = <
 > => {
   return useMutation(getCreateAlertMutationOptions(options));
 };
+
+/**
+ * @summary Get live trend status and top movers
+ */
+export const getGetLiveTrendsUrl = () => {
+  return `/api/trends/live`;
+};
+
+export const getLiveTrends = async (
+  options?: RequestInit,
+): Promise<LiveTrends> => {
+  return customFetch<LiveTrends>(getGetLiveTrendsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLiveTrendsQueryKey = () => {
+  return [`/api/trends/live`] as const;
+};
+
+export const getGetLiveTrendsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLiveTrends>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLiveTrends>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLiveTrendsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getLiveTrends>>> = ({
+    signal,
+  }) => getLiveTrends({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLiveTrends>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLiveTrendsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLiveTrends>>
+>;
+export type GetLiveTrendsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get live trend status and top movers
+ */
+
+export function useGetLiveTrends<
+  TData = Awaited<ReturnType<typeof getLiveTrends>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLiveTrends>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLiveTrendsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Delete an alert

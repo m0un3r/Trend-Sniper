@@ -236,6 +236,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/Alert"
 
+  /trends/live:
+    get:
+      operationId: getLiveTrends
+      tags: [dashboard]
+      summary: Get live trend status and top movers
+      responses:
+        "200":
+          description: Live trend data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTrends"
+
   /alerts/{id}:
     delete:
       operationId: deleteAlert
@@ -523,6 +536,19 @@ components:
             $ref: "#/components/schemas/Alert"
       required:
         - alerts
+
+    LiveTrends:
+      type: object
+      properties:
+        lastUpdatedAt:
+          type: string
+          nullable: true
+        topMovers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+      required:
+        - topMovers
 
     CreateAlertBody:
       type: object

@@ -1,5 +1,6 @@
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { TrendingUp, Package, Activity, BarChart2, Zap, ArrowUpRight } from "lucide-react";
+import { TrendingUp, Package, Activity, BarChart2, Zap, ArrowUpRight, Flame } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlatformBadge } from "@/components/platform-badge";
@@ -9,6 +10,7 @@ import {
   useGetTopProducts,
   useGetPlatformBreakdown,
   useListPosts,
+  useGetLiveTrends,
 } from "@workspace/api-client-react";
 import {
   ResponsiveContainer,
@@ -17,10 +19,9 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  LineChart,
-  Line,
-  CartesianGrid,
 } from "recharts";
+
+const REFETCH_INTERVAL_MS = 30_000;
 
 function TrendScoreBadge({ score }: { score: number }) {
   const color =
@@ -37,6 +38,54 @@ function TrendScoreBadge({ score }: { score: number }) {
       <TrendingUp className="w-3 h-3" />
       {score.toFixed(1)}
     </span>
+  );
+}
+
+function VelocityBar({ velocity }: { velocity: number }) {
+  const pct = Math.min(100, velocity);
+  const color =
+    pct >= 70 ? "bg-emerald-400" : pct >= 40 ? "bg-amber-400" : "bg-slate-600";
+  return (
+    <div className="flex items-center gap-2 w-24">
+      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ${color}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-[10px] text-muted-foreground tabular-nums w-6 text-right">
+        {Math.round(pct)}
+      </span>
+    </div>
+  );
+}
+
+function LiveBadge({ lastUpdatedAt }: { lastUpdatedAt?: string | null }) {
+  const [ago, setAgo] = useState<string>("—");
+
+  useEffect(() => {
+    if (!lastUpdatedAt) return;
+    const update = () => {
+      const diff = Math.floor((Date.now() - new Date(lastUpdatedAt).getTime()) / 1000);
+      if (diff < 60) setAgo(`${diff}s ago`);
+      else setAgo(`${Math.floor(diff / 60)}m ago`);
+    };
+    update();
+    const id = setInterval(update, 5_000);
+    return () => clearInterval(id);
+  }, [lastUpdatedAt]);
+
+  return (
+    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <span className="relative flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+      </span>
+      <span className="text-emerald-400 font-semibold">LIVE</span>
+      {lastUpdatedAt && (
+        <span className="text-muted-foreground">· updated {ago}</span>
+      )}
+    </div>
   );
 }
 
@@ -76,10 +125,13 @@ function StatCard({
 }
 
 export default function Dashboard() {
-  const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary();
-  const { data: topProducts, isLoading: productsLoading } = useGetTopProducts({ limit: 8 });
-  const { data: platformBreakdown, isLoading: platformLoading } = useGetPlatformBreakdown();
-  const { data: posts, isLoading: postsLoading } = useListPosts({ limit: 6 });
+  const queryOpts = { refetchInterval: REFETCH_INTERVAL_MS };
+
+  const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary(undefined, queryOpts);
+  const { data: topProducts, isLoading: productsLoading } = useGetTopProducts({ limit: 8 }, queryOpts);
+  const { data: platformBreakdown, isLoading: platformLoading } = useGetPlatformBreakdown(undefined, queryOpts);
+  const { data: posts, isLoading: postsLoading } = useListPosts({ limit: 6 }, queryOpts);
+  const { data: live } = useGetLiveTrends(queryOpts);
 
   const platformColors: Record<string, string> = {
     tiktok: "#ff0050",
@@ -93,6 +145,14 @@ export default function Dashboard() {
         title="Trend Dashboard"
         description="Real-time intelligence across TikTok, Instagram, and Facebook"
       />
+
+      {/* Live status bar */}
+      <div className="flex items-center justify-between px-1">
+        <LiveBadge lastUpdatedAt={live?.lastUpdatedAt} />
+        <span className="text-xs text-muted-foreground">
+          Scores refresh every 30s
+        </span>
+      </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -129,6 +189,34 @@ export default function Dashboard() {
           loading={summaryLoading}
         />
       </div>
+
+      {/* Top Movers banner */}
+      {live && live.topMovers.length > 0 && (
+        <Card className="bg-gradient-to-r from-emerald-950/60 to-card border-emerald-800/40">
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 text-emerald-400">
+              <Flame className="w-3.5 h-3.5" />
+              Velocity Spikes · Top Movers
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <div className="flex flex-wrap gap-3">
+              {live.topMovers.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/products/${p.id}`}
+                  className="flex items-center gap-3 bg-card/60 border border-emerald-800/30 rounded-lg px-3 py-2 hover:bg-card/90 transition-colors"
+                >
+                  <PlatformBadge platform={p.platform} />
+                  <span className="text-sm font-medium text-foreground max-w-[120px] truncate">{p.name}</span>
+                  <VelocityBar velocity={p.velocity} />
+                  <TrendScoreBadge score={p.trendScore} />
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Top Products */}
@@ -171,6 +259,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <VelocityBar velocity={product.velocity} />
                         <span className="hidden sm:block tabular-nums">
                           {product.totalPosts.toLocaleString()} posts
                         </span>
