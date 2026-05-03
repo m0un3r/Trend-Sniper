@@ -1,7 +1,7 @@
 /**
  * Ingestion Engine
  *
- * Fetches fresh posts/products from Apify actors across all 5 platforms,
+ * Fetches fresh posts/products from Apify and/or Bright Data across all 5 platforms,
  * extracts product signals, upserts products + posts into the DB,
  * and clears old demo data before writing real data.
  */
@@ -15,6 +15,13 @@ import {
   fetchShopifyProducts,
   type RawPost,
 } from "./apifyService";
+import {
+  fetchBrightDataTikTok,
+  fetchBrightDataInstagram,
+  fetchBrightDataAmazon,
+} from "./brightDataService";
+
+export type DataSource = "apify" | "brightdata" | "both";
 
 // ── Targets ─────────────────────────────────────────────────────────────────
 
@@ -146,19 +153,48 @@ export interface IngestionResult {
   productsUpserted: number;
   postsInserted: number;
   demoDataCleared: boolean;
+  source: DataSource;
 }
 
-export async function runIngestion(): Promise<IngestionResult> {
-  logger.info("Ingestion: starting full 5-platform fetch");
+export async function runIngestion(source: DataSource = "apify"): Promise<IngestionResult> {
+  logger.info({ source }, "Ingestion: starting fetch");
 
-  // 1. Fetch all 5 sources in parallel
-  const [tiktokPosts, instagramPosts, facebookPosts, amazonProducts, shopifyProducts] = await Promise.all([
-    fetchTikTokPosts(TIKTOK_HASHTAGS, 40),
-    fetchInstagramPosts(INSTAGRAM_HASHTAGS, 30),
-    fetchFacebookPosts(FACEBOOK_QUERIES, 20),
-    fetchAmazonProducts(AMAZON_CATEGORIES, 30),
-    fetchShopifyProducts(SHOPIFY_STORES, 30),
-  ]);
+  let tiktokPosts: RawPost[] = [];
+  let instagramPosts: RawPost[] = [];
+  let facebookPosts: RawPost[] = [];
+  let amazonProducts: RawPost[] = [];
+  let shopifyProducts: RawPost[] = [];
+
+  if (source === "apify" || source === "both") {
+    logger.info("Ingestion: running Apify actors");
+    const [tt, ig, fb, amz, shp] = await Promise.all([
+      fetchTikTokPosts(TIKTOK_HASHTAGS, 40),
+      fetchInstagramPosts(INSTAGRAM_HASHTAGS, 30),
+      fetchFacebookPosts(FACEBOOK_QUERIES, 20),
+      fetchAmazonProducts(AMAZON_CATEGORIES, 30),
+      fetchShopifyProducts(SHOPIFY_STORES, 30),
+    ]);
+    tiktokPosts = [...tiktokPosts, ...tt];
+    instagramPosts = [...instagramPosts, ...ig];
+    facebookPosts = [...facebookPosts, ...fb];
+    amazonProducts = [...amazonProducts, ...amz];
+    shopifyProducts = [...shopifyProducts, ...shp];
+    logger.info({ tiktok: tt.length, instagram: ig.length, facebook: fb.length, amazon: amz.length, shopify: shp.length }, "Ingestion: Apify complete");
+  }
+
+  if (source === "brightdata" || source === "both") {
+    logger.info("Ingestion: running Bright Data datasets");
+    const AMAZON_KEYWORDS = ["trending skincare", "viral gadgets", "best fitness gear", "trending fashion", "home decor bestsellers"];
+    const [bdTt, bdIg, bdAmz] = await Promise.all([
+      fetchBrightDataTikTok(TIKTOK_HASHTAGS, 40),
+      fetchBrightDataInstagram(INSTAGRAM_HASHTAGS, 30),
+      fetchBrightDataAmazon(AMAZON_KEYWORDS, 30),
+    ]);
+    tiktokPosts = [...tiktokPosts, ...bdTt];
+    instagramPosts = [...instagramPosts, ...bdIg];
+    amazonProducts = [...amazonProducts, ...bdAmz];
+    logger.info({ tiktok: bdTt.length, instagram: bdIg.length, amazon: bdAmz.length }, "Ingestion: Bright Data complete");
+  }
 
   const allPosts: RawPost[] = [
     ...tiktokPosts, ...instagramPosts, ...facebookPosts,
@@ -173,6 +209,7 @@ export async function runIngestion(): Promise<IngestionResult> {
       amazon: amazonProducts.length,
       shopify: shopifyProducts.length,
       total: allPosts.length,
+      source,
     },
     "Ingestion: fetch complete"
   );
@@ -209,7 +246,7 @@ export async function runIngestion(): Promise<IngestionResult> {
         tiktok: tiktokPosts.length, instagram: instagramPosts.length,
         facebook: facebookPosts.length, amazon: amazonProducts.length, shopify: shopifyProducts.length,
       },
-      productsUpserted: 0, postsInserted: 0, demoDataCleared: true,
+      productsUpserted: 0, postsInserted: 0, demoDataCleared: true, source,
     };
   }
 
@@ -328,5 +365,6 @@ export async function runIngestion(): Promise<IngestionResult> {
     productsUpserted,
     postsInserted,
     demoDataCleared: true,
+    source,
   };
 }

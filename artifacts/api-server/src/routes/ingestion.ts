@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { runIngestion } from "../lib/ingestionEngine";
+import { runIngestion, type DataSource } from "../lib/ingestionEngine";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -18,11 +18,19 @@ router.post("/ingestion/run", async (req, res): Promise<void> => {
     return;
   }
 
+  const validSources: DataSource[] = ["apify", "brightdata", "both"];
+  const requestedSource = req.body?.source as string | undefined;
+  const source: DataSource = validSources.includes(requestedSource as DataSource)
+    ? (requestedSource as DataSource)
+    : "apify";
+
   ingestionRunning = true;
-  res.json({ message: "Ingestion started — this takes 2–5 minutes while Apify actors run. Poll /api/ingestion/status for completion." });
+  // Store source in lastResult so UI can display which source is running
+  lastResult = { source } as Record<string, unknown>;
+  res.json({ message: `Ingestion started via ${source}. Poll /api/ingestion/status for completion.` });
 
   try {
-    const result = await runIngestion();
+    const result = await runIngestion(source);
     lastResult = result as unknown as Record<string, unknown>;
     lastRanAt = new Date().toISOString();
     logger.info(result, "Ingestion route: completed");
