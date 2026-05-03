@@ -140,6 +140,26 @@ function refineName(base: string, caption: string | null): string {
   return base;
 }
 
+function normalizeFingerprint(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/https?:\/\/(www\.)?/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function getPostFingerprint(post: RawPost): string {
+  const parts = [
+    post.platform,
+    post.productName ?? "",
+    post.videoUrl ?? "",
+    post.caption ?? "",
+    post.creatorUsername ?? "",
+  ];
+  return normalizeFingerprint(parts.join("|"));
+}
+
 // ── Main ingestion ───────────────────────────────────────────────────────────
 
 export interface IngestionResult {
@@ -221,7 +241,7 @@ export async function runIngestion(source: DataSource = "apify"): Promise<Ingest
   logger.info("Ingestion: cleared existing data");
 
   // 3. Group by product signal
-  const productMap = new Map<string, { name: string; category: string; platform: string; posts: RawPost[] }>();
+  const productMap = new Map<string, { name: string; category: string; platform: string; posts: RawPost[]; fingerprints: Set<string> }>();
 
   for (const post of allPosts) {
     const signal = extractProductSignal(post);
@@ -234,9 +254,13 @@ export async function runIngestion(source: DataSource = "apify"): Promise<Ingest
     const key = isEcom ? `${productName}::${post.platform}` : `${productName}::${post.platform}`;
 
     if (!productMap.has(key)) {
-      productMap.set(key, { name: productName, category: signal.category, platform: post.platform, posts: [] });
+      productMap.set(key, { name: productName, category: signal.category, platform: post.platform, posts: [], fingerprints: new Set() });
     }
-    productMap.get(key)!.posts.push(post);
+    const bucket = productMap.get(key)!;
+    const fingerprint = getPostFingerprint(post);
+    if (bucket.fingerprints.has(fingerprint)) continue;
+    bucket.fingerprints.add(fingerprint);
+    bucket.posts.push(post);
   }
 
   if (productMap.size === 0) {
@@ -331,6 +355,7 @@ export async function runIngestion(source: DataSource = "apify"): Promise<Ingest
   // Unmatched social posts (no product signal) go in for browsing
   const unmatched = allPosts
     .filter((p) => p.platform !== "amazon" && p.platform !== "shopify" && !extractProductSignal(p))
+    .filter((post, index, arr) => arr.findIndex((other) => getPostFingerprint(other) === getPostFingerprint(post)) === index)
     .slice(0, 30);
 
   for (const post of unmatched) {
