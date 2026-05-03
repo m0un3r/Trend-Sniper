@@ -1,17 +1,39 @@
-import { Badge } from "@/components/ui/badge";
-
 export function PlatformBadge({ platform }: { platform: string }) {
   const p = platform.toLowerCase();
-  
+
   if (p === "tiktok") {
-    return <Badge variant="outline" className="bg-[#ff0050]/10 text-[#ff0050] border-[#ff0050]/20 font-medium">TikTok</Badge>;
+    return (
+      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold text-white" style={{ background: "#ff0050" }}>
+        TikTok
+      </span>
+    );
   }
   if (p === "instagram") {
-    return <Badge variant="outline" className="bg-gradient-to-r from-purple-500/10 to-orange-500/10 text-purple-400 border-purple-500/20 font-medium">Instagram</Badge>;
+    return (
+      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold text-white" style={{ background: "#a855f7" }}>
+        Instagram
+      </span>
+    );
   }
   if (p === "facebook") {
-    return <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 font-medium">Facebook</Badge>;
+    return (
+      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold text-white" style={{ background: "#3b82f6" }}>
+        Facebook
+      </span>
+    );
   }
-  
-  return <Badge variant="outline" className="capitalize">{platform}</Badge>;
+
+  return (
+    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-muted text-muted-foreground capitalize">
+      {platform}
+    </span>
+  );
+}
+
+export function platformColor(platform: string): string {
+  const p = platform.toLowerCase();
+  if (p === "tiktok") return "#ff0050";
+  if (p === "instagram") return "#a855f7";
+  if (p === "facebook") return "#3b82f6";
+  return "#6366f1";
 }

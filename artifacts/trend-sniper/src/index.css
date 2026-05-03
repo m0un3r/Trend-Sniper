@@ -133,52 +133,52 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
-/* DARK MODE */
+/* DARK MODE — Intelligence Report Aesthetic */
 .dark {
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .05);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(255,255,255, .03);
+  --elevate-2: rgba(255,255,255, .07);
 
-  /* Deep dark terminal aesthetic */
-  --background: 228 10% 6%;
-  --foreground: 228 10% 90%;
-  --border: 228 15% 14%;
-  --card: 228 10% 9%;
-  --card-foreground: 228 10% 90%;
-  --card-border: 228 15% 15%;
-  --sidebar: 228 10% 7%;
+  /* Near-black base, deep card surfaces */
+  --background: 240 20% 4%;
+  --foreground: 228 15% 92%;
+  --border: 228 15% 11%;
+  --card: 235 18% 7%;
+  --card-foreground: 228 15% 92%;
+  --card-border: 228 15% 12%;
+  --sidebar: 240 20% 5%;
   --sidebar-foreground: 228 10% 85%;
-  --sidebar-border: 228 15% 14%;
+  --sidebar-border: 228 15% 10%;
   --sidebar-primary: 230 100% 65%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 228 15% 14%;
+  --sidebar-accent: 228 18% 11%;
   --sidebar-accent-foreground: 228 10% 95%;
   --sidebar-ring: 230 100% 65%;
-  --popover: 228 10% 9%;
-  --popover-foreground: 228 10% 90%;
-  --popover-border: 228 15% 15%;
-  
+  --popover: 235 18% 8%;
+  --popover-foreground: 228 15% 92%;
+  --popover-border: 228 15% 13%;
+
   --primary: 230 100% 65%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 228 15% 15%;
+  --secondary: 228 15% 13%;
   --secondary-foreground: 228 10% 95%;
-  --muted: 228 15% 12%;
-  --muted-foreground: 228 10% 60%;
+  --muted: 228 18% 10%;
+  --muted-foreground: 228 10% 52%;
   --accent: 230 100% 65%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --input: 228 15% 18%;
+  --input: 228 15% 15%;
   --ring: 230 100% 65%;
-  
-  --chart-1: 230 100% 65%;
-  --chart-2: 340 100% 65%;
-  --chart-3: 150 100% 40%;
+
+  --chart-1: 348 100% 60%;
+  --chart-2: 270 80% 65%;
+  --chart-3: 217 91% 60%;
   --chart-4: 40 100% 60%;
-  --chart-5: 280 100% 60%;
+  --chart-5: 150 100% 45%;
 }
 
 @layer base {
