@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "m8ktCvnMFLGwM3FXq_rkG"
+uri = "file://exports/platform-comparison-infographic.jpg"
+type = "image"
+title = "Platform Comparison Infographic"
